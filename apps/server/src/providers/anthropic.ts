@@ -1,6 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
-import { z } from "zod";
+import type { Messages } from "@anthropic-ai/sdk/resources/messages/messages.js";
 import {
   Transcript,
   type ReviseRequest,
@@ -19,31 +18,47 @@ const MODEL = "claude-opus-4-8";
 const INPUT_USD_PER_MTOK = 5;
 const OUTPUT_USD_PER_MTOK = 25;
 
-/** Schema sent to the API for structured outputs. Regex constraints aren't
- * supported server-side (the SDK strips and validates them client-side),
- * so use a relaxed shape here and run the strict shared `Transcript` schema
- * on the result ourselves for a clearer error path. */
-const TranscriptOut = z.object({
-  title: z.string(),
-  logline: z.string(),
-  scenes: z.array(
-    z.object({
-      index: z.number().int(),
-      timestampStart: z.string(),
-      timestampEnd: z.string(),
-      narration: z.string(),
-      visualDescription: z.string(),
-      sceneClass: z.enum([
-        "diagram",
-        "chart",
-        "text",
-        "character",
-        "cinematic",
-        "hybrid",
-      ]),
-    }),
-  ),
-});
+/** Plain JSON schema for the structured output — avoids the Zod 4 dependency
+ * that `zodOutputFormat` from the SDK helper requires. Strict Zod validation
+ * is done on the returned text via the shared `Transcript` schema instead. */
+const TRANSCRIPT_OUTPUT_FORMAT: Messages.JSONOutputFormat = {
+  type: "json_schema",
+  schema: {
+    type: "object",
+    additionalProperties: false,
+    properties: {
+      title: { type: "string" },
+      logline: { type: "string" },
+      scenes: {
+        type: "array",
+        items: {
+          type: "object",
+          additionalProperties: false,
+          properties: {
+            index: { type: "integer" },
+            timestampStart: { type: "string" },
+            timestampEnd: { type: "string" },
+            narration: { type: "string" },
+            visualDescription: { type: "string" },
+            sceneClass: {
+              type: "string",
+              enum: ["diagram", "chart", "text", "character", "cinematic", "hybrid"],
+            },
+          },
+          required: [
+            "index",
+            "timestampStart",
+            "timestampEnd",
+            "narration",
+            "visualDescription",
+            "sceneClass",
+          ],
+        },
+      },
+    },
+    required: ["title", "logline", "scenes"],
+  },
+};
 
 export class AnthropicTextProvider implements TextProvider {
   private client: Anthropic;
@@ -86,7 +101,7 @@ export class AnthropicTextProvider implements TextProvider {
           cache_control: { type: "ephemeral" },
         },
       ],
-      output_config: { format: zodOutputFormat(TranscriptOut) },
+      output_config: { format: TRANSCRIPT_OUTPUT_FORMAT },
       messages: [{ role: "user", content: userPrompt }],
     });
 

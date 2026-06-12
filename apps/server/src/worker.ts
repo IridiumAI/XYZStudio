@@ -1,3 +1,4 @@
+import "./env.js";
 import { Worker } from "bullmq";
 import { loadConfig } from "./config.js";
 import { QUEUE_NAMES, redisConnection } from "./queue/index.js";
