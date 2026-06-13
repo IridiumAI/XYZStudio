@@ -11,7 +11,7 @@ Idea → Transcript → Scene-by-scene clips + voice → Assembled video + publi
 [![Fastify](https://img.shields.io/badge/Fastify-5.x-000000?logo=fastify)](https://fastify.dev/)
 [![BullMQ](https://img.shields.io/badge/BullMQ-Redis-DC382D?logo=redis&logoColor=white)](https://bullmq.io/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![CI](https://github.com/YingjingLu/XYZStudio/actions/workflows/ci.yml/badge.svg)](https://github.com/YingjingLu/XYZStudio/actions)
+[![CI](https://github.com/IridiumAI/XYZStudio/actions/workflows/ci.yml/badge.svg)](https://github.com/IridiumAI/XYZStudio/actions)
 
 </div>
 
