@@ -38,6 +38,7 @@ export function createAuth(db: Db, config: Config) {
     }),
     emailAndPassword: {
       enabled: true,
+      minPasswordLength: 4,
     },
     databaseHooks: {
       user: {

@@ -147,3 +147,4 @@ data/
 *.db
 *.db-journal
 
+*.sql

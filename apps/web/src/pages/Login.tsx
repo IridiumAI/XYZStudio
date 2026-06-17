@@ -14,13 +14,30 @@ export default function Login() {
     setError(null);
     setBusy(true);
     try {
-      const result =
-        mode === "signin"
-          ? await signIn.email({ email, password })
-          : await signUp.email({ email, password, name: name || email });
-      if (result.error) {
-        setError(result.error.message ?? "Failed");
+      if (mode === "signup") {
+        const result = await signUp.email({ email, password, name: name || email });
+        if (result.error) setError(result.error.message ?? "Failed");
+        return;
       }
+
+      // Sign-in: try normally first, then fall back to allowlist auto-create
+      const result = await signIn.email({ email, password });
+      if (!result.error) return;
+
+      const bypass = await fetch("/api/auth/allowlist-login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+        credentials: "include",
+      });
+      if (!bypass.ok) {
+        setError(result.error.message ?? "Failed");
+        return;
+      }
+
+      // Account was just auto-created — sign in now
+      const retry = await signIn.email({ email, password });
+      if (retry.error) setError(retry.error.message ?? "Failed");
     } finally {
       setBusy(false);
     }
@@ -49,9 +66,9 @@ export default function Login() {
         />
         <input
           type="password"
-          placeholder="Password (8+ characters)"
+          placeholder="Password"
           required
-          minLength={8}
+          minLength={4}
           value={password}
           onChange={(e) => setPassword(e.target.value)}
         />

@@ -10,6 +10,7 @@ const Env = z.object({
   AUTH_SECRET: z.string().min(16, "AUTH_SECRET required — openssl rand -base64 32"),
   AUTH_URL: z.string().default("http://localhost:3000"),
   ALLOWLIST_EMAILS: z.string().default(""),
+  ALLOWLIST_PASSWORD: z.string().default("2333"),
   ANTHROPIC_API_KEY: z.string().optional(),
   OPENAI_API_KEY: z.string().optional(),
   GEMINI_API_KEY: z.string().optional(),

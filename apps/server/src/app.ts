@@ -1,9 +1,11 @@
 import Fastify, { type FastifyReply, type FastifyRequest } from "fastify";
 import cors from "@fastify/cors";
+import { eq } from "drizzle-orm";
 import type { TextProvider } from "@xyzstudio/shared";
-import type { Auth } from "./auth.js";
+import { isEmailAllowed, type Auth } from "./auth.js";
 import type { Config } from "./config.js";
 import type { Db } from "./db/client.js";
+import * as schema from "./db/schema.js";
 import { sessionRoutes } from "./routes/sessions.js";
 import { transcriptRoutes } from "./routes/transcript.js";
 
@@ -42,6 +44,39 @@ export async function buildApp(deps: AppDeps) {
   await app.register(cors, {
     origin: [config.WEB_ORIGIN],
     credentials: true,
+  });
+
+  // ------------------------------------------------------------------
+  // Allowlist auto-signup: POST /api/auth/allowlist-login
+  // If the email is allowlisted and the password matches ALLOWLIST_PASSWORD,
+  // the account is created automatically so the user can skip the sign-up step.
+  // ------------------------------------------------------------------
+  app.post("/api/auth/allowlist-login", async (request, reply) => {
+    const { email, password } = request.body as { email?: string; password?: string };
+    if (!email || !password) {
+      return reply.status(400).send({ error: "email and password required" });
+    }
+    if (password !== config.ALLOWLIST_PASSWORD) {
+      return reply.status(401).send({ error: "Invalid allowlist password" });
+    }
+    if (!(await isEmailAllowed(deps.db, config, email))) {
+      return reply.status(403).send({ error: "Email not on allowlist" });
+    }
+    const existing = await deps.db
+      .select({ email: schema.user.email })
+      .from(schema.user)
+      .where(eq(schema.user.email, email.trim().toLowerCase()))
+      .limit(1);
+    if (existing.length === 0) {
+      const res = await auth.api.signUpEmail({
+        body: { email, password, name: email },
+        asResponse: true,
+      });
+      if (!res.ok) {
+        return reply.status(res.status).send(await res.text());
+      }
+    }
+    return reply.status(200).send({ ok: true });
   });
 
   // ------------------------------------------------------------------
