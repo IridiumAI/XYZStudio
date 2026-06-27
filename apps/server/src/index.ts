@@ -18,7 +18,7 @@ if (!textProvider) {
   );
 }
 
-const app = await buildApp({ config, db, auth, textProvider });
+const app = await buildApp({ config, db, auth, textProvider, voiceProvider: null, videoProvider: null });
 
 try {
   await app.listen({ port: config.PORT, host: "0.0.0.0" });

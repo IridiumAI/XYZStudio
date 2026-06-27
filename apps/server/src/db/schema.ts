@@ -131,7 +131,9 @@ export const costPlans = sqliteTable("cost_plans", {
   estimatedTotalUsd: real("estimated_total_usd").notNull(),
 });
 
-/** Ledger of actual provider spend (design §4.4). */
+/** Ledger of actual provider spend (design §4.4).
+ * isPreview=true entries are from scene deep-dive "Generate narration/video" previews
+ * and are excluded from the session's actualSpendUsd (they don't count against the budget). */
 export const costEntries = sqliteTable("cost_entries", {
   id: text("id").primaryKey(),
   sessionId: text("session_id")
@@ -140,6 +142,7 @@ export const costEntries = sqliteTable("cost_entries", {
   jobId: text("job_id"),
   provider: text("provider").notNull(),
   actualCostUsd: real("actual_cost_usd").notNull(),
+  isPreview: integer("is_preview", { mode: "boolean" }).notNull().default(false),
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
     .$defaultFn(() => new Date()),
@@ -174,6 +177,22 @@ export const assets = sqliteTable("assets", {
   path: text("path").notNull(), // relative to STORAGE_ROOT
   providerMeta: text("provider_meta", { mode: "json" }),
   createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});
+
+/** Per-scene user selections for narration and video preview assets.
+ * One row per (sessionId, sceneIndex). The selected asset IDs are used by
+ * the pipeline to skip re-generation for scenes already approved. */
+export const sceneSelections = sqliteTable("scene_selections", {
+  id: text("id").primaryKey(),
+  sessionId: text("session_id")
+    .notNull()
+    .references(() => videoSessions.id, { onDelete: "cascade" }),
+  sceneIndex: integer("scene_index").notNull(),
+  selectedNarrationAssetId: text("selected_narration_asset_id"),
+  selectedVideoAssetId: text("selected_video_asset_id"),
+  updatedAt: integer("updated_at", { mode: "timestamp" })
     .notNull()
     .$defaultFn(() => new Date()),
 });

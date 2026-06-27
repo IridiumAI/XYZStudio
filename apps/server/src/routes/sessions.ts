@@ -106,7 +106,12 @@ export async function sessionRoutes(
     const [spend] = await db
       .select({ total: sum(schema.costEntries.actualCostUsd) })
       .from(schema.costEntries)
-      .where(eq(schema.costEntries.sessionId, id));
+      .where(
+        and(
+          eq(schema.costEntries.sessionId, id),
+          eq(schema.costEntries.isPreview, false),
+        ),
+      );
 
     return {
       ...session,

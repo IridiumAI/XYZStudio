@@ -2,6 +2,7 @@ import { Link, Navigate, Route, Routes } from "react-router-dom";
 import { signOut, useSession } from "./auth.js";
 import Dashboard from "./pages/Dashboard.js";
 import Login from "./pages/Login.js";
+import SceneDeepDive from "./pages/SceneDeepDive.js";
 import SessionEditor from "./pages/SessionEditor.js";
 
 export default function App() {
@@ -34,6 +35,10 @@ export default function App() {
         <Routes>
           <Route path="/" element={<Dashboard />} />
           <Route path="/sessions/:id" element={<SessionEditor />} />
+          <Route
+            path="/sessions/:id/scene/:sceneIndex"
+            element={<SceneDeepDive />}
+          />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>

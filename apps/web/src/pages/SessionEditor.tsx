@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { Scene, Transcript } from "@xyzstudio/shared";
 import { api, streamSse } from "../api.js";
@@ -15,6 +15,11 @@ export default function SessionEditor() {
     queryKey: ["versions", id],
     queryFn: () => api.listVersions(id),
   });
+  const sceneSelections = useQuery({
+    queryKey: ["scene-selections", id],
+    queryFn: () => api.listSceneSelections(id),
+    enabled: !!session.data?.latestVersion,
+  });
 
   const [streaming, setStreaming] = useState(false);
   const [streamText, setStreamText] = useState("");
@@ -25,6 +30,7 @@ export default function SessionEditor() {
   const refresh = () => {
     void queryClient.invalidateQueries({ queryKey: ["session", id] });
     void queryClient.invalidateQueries({ queryKey: ["versions", id] });
+    void queryClient.invalidateQueries({ queryKey: ["scene-selections", id] });
   };
 
   async function runStream(url: string, body?: unknown) {
@@ -136,9 +142,19 @@ export default function SessionEditor() {
                   const routing = s.costPlan?.perSceneRouting.find(
                     (r) => r.sceneIndex === scene.index,
                   );
+                  const sel = sceneSelections.data?.find(
+                    (s) => s.sceneIndex === scene.index,
+                  );
                   return (
                     <tr key={scene.index}>
-                      <td>{scene.index}</td>
+                      <td>
+                        <Link
+                          to={`/sessions/${id}/scene/${scene.index}`}
+                          className="scene-link"
+                        >
+                          {scene.index}
+                        </Link>
+                      </td>
                       <td className="nowrap">
                         {scene.timestampStart}–{scene.timestampEnd}
                       </td>
@@ -167,6 +183,12 @@ export default function SessionEditor() {
                         {routing
                           ? `${routing.renderPath}${routing.candidates > 1 ? ` ×${routing.candidates}` : ""} ($${routing.estimatedUsd.toFixed(2)})`
                           : "—"}
+                        {sel?.selectedNarrationAssetId && (
+                          <span className="sel-badge">narr ✓</span>
+                        )}
+                        {sel?.selectedVideoAssetId && (
+                          <span className="sel-badge">vid ✓</span>
+                        )}
                       </td>
                     </tr>
                   );

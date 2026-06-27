@@ -95,6 +95,8 @@ export async function createTestApp(opts: { textProvider?: TextProvider } = {}) 
     db,
     auth,
     textProvider: opts.textProvider ?? new FakeTextProvider(),
+    voiceProvider: null,
+    videoProvider: null,
   });
   return { app, db, config };
 }
