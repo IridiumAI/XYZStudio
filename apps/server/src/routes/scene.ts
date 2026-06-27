@@ -9,6 +9,7 @@ import {
   Transcript,
   sceneDurationSeconds,
   type TranscriptRequest,
+  PresentationSlideType,
 } from "@xyzstudio/shared";
 import { requireUser, type AppDeps } from "../app.js";
 import * as schema from "../db/schema.js";
@@ -26,6 +27,9 @@ const SceneEditBody = z.object({
   narration: z.string().optional(),
   visualDescription: z.string().optional(),
   sceneClass: SceneClass.optional(),
+  presentationSlideType: PresentationSlideType.optional(),
+  complexAnimation: z.boolean().optional(),
+  diagramCode: z.string().optional(),
 });
 
 const SelectionBody = z.object({

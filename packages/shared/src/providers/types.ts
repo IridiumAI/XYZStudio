@@ -1,5 +1,5 @@
-import type { Language } from "../schemas/session.js";
-import type { Transcript } from "../schemas/transcript.js";
+import type { Language, ImageProviderTier } from "../schemas/session.js";
+import type { Scene, Transcript } from "../schemas/transcript.js";
 
 /** Provider abstraction layer (design §4.3). One adapter per vendor; adapters
  * are the only code allowed to talk to external AI APIs. Everything above
@@ -45,7 +45,25 @@ export interface ImageProvider {
     referenceImagePaths?: string[];
     width: number;
     height: number;
+    modelTier?: ImageProviderTier;
   }): Promise<{ filePath: string; costUsd: number }>;
+}
+
+export interface SlideGeneratorProvider {
+  generateSlideHtml(req: {
+    scene: Scene;
+    sessionStyle: string;
+    presentationStylePrompt: string;
+  }): Promise<{ html: string; costUsd: number }>;
+
+  generateCssOverride(
+    stylePrompt: string,
+  ): Promise<{ css: string; costUsd: number }>;
+
+  generateDiagramHtml(req: {
+    scene: Scene;
+    presentationStylePrompt: string;
+  }): Promise<{ html: string; costUsd: number }>;
 }
 
 export interface VideoProvider {

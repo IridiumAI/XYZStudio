@@ -1,7 +1,15 @@
+import { writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { randomUUID } from "node:crypto";
 import Database from "better-sqlite3";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import type {
+  ImageProvider,
+  ImageProviderTier,
   ReviseRequest,
+  Scene,
+  SlideGeneratorProvider,
   TextProvider,
   TextResult,
   Transcript,
@@ -12,6 +20,14 @@ import { createAuth } from "../auth.js";
 import { loadConfig, type Config } from "../config.js";
 import * as schema from "../db/schema.js";
 import type { Db } from "../db/client.js";
+
+// Minimal 1×1 white PNG
+const PNG_1X1 = Buffer.from(
+  "89504e470d0a1a0a0000000d49484452000000010000000108020000009001" +
+    "2e000000000c4944415408d76360f8ff000001010057010057" +
+    "0000000049454e44ae426082",
+  "hex",
+);
 
 export function testConfig(overrides: Partial<Config> = {}): Config {
   return {
@@ -86,7 +102,60 @@ export class FakeTextProvider implements TextProvider {
   }
 }
 
-export async function createTestApp(opts: { textProvider?: TextProvider } = {}) {
+export class FakeSlideGeneratorProvider implements SlideGeneratorProvider {
+  readonly calls: { method: string; args: unknown }[] = [];
+
+  async generateSlideHtml(req: {
+    scene: Scene;
+    sessionStyle: string;
+    presentationStylePrompt: string;
+  }): Promise<{ html: string; costUsd: number }> {
+    this.calls.push({ method: "generateSlideHtml", args: req });
+    return {
+      html: `<section><h2>Scene ${req.scene.index}</h2><aside class="notes">${req.scene.narration}</aside></section>`,
+      costUsd: 0.002,
+    };
+  }
+
+  async generateCssOverride(stylePrompt: string): Promise<{ css: string; costUsd: number }> {
+    this.calls.push({ method: "generateCssOverride", args: stylePrompt });
+    return { css: ":root { --r-background-color: #fff; }", costUsd: 0.001 };
+  }
+
+  async generateDiagramHtml(req: {
+    scene: Scene;
+    presentationStylePrompt: string;
+  }): Promise<{ html: string; costUsd: number }> {
+    this.calls.push({ method: "generateDiagramHtml", args: req });
+    return {
+      html: `<!DOCTYPE html><body>diagram-${req.scene.index}</body>`,
+      costUsd: 0.005,
+    };
+  }
+}
+
+export class FakeImageProvider implements ImageProvider {
+  readonly calls: unknown[] = [];
+
+  async generateImage(req: {
+    prompt: string;
+    stylePrompt: string;
+    width: number;
+    height: number;
+    modelTier?: ImageProviderTier;
+  }): Promise<{ filePath: string; costUsd: number }> {
+    this.calls.push(req);
+    const filePath = join(tmpdir(), `fake-image-${randomUUID()}.png`);
+    writeFileSync(filePath, PNG_1X1);
+    return { filePath, costUsd: 0.04 };
+  }
+}
+
+export async function createTestApp(opts: {
+  textProvider?: TextProvider;
+  slideGeneratorProvider?: SlideGeneratorProvider;
+  imageProvider?: ImageProvider;
+} = {}) {
   const config = testConfig();
   const db = await createTestDb();
   const auth = createAuth(db, config);
@@ -97,6 +166,8 @@ export async function createTestApp(opts: { textProvider?: TextProvider } = {}) 
     textProvider: opts.textProvider ?? new FakeTextProvider(),
     voiceProvider: null,
     videoProvider: null,
+    slideGeneratorProvider: opts.slideGeneratorProvider ?? new FakeSlideGeneratorProvider(),
+    imageProvider: opts.imageProvider ?? null,
   });
   return { app, db, config };
 }

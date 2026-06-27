@@ -12,11 +12,30 @@ export const SceneClass = z.enum([
 export type SceneClass = z.infer<typeof SceneClass>;
 
 /** How the scene will be rendered — assigned by the budget router (§4.4). */
-export const RenderPath = z.enum(["remotion", "gen_video", "animatic", "hybrid"]);
+export const RenderPath = z.enum([
+  "remotion",
+  "gen_video",
+  "animatic",
+  "hybrid",
+  "presentation",      // Reveal.js slide HTML
+  "animated_diagram",  // standalone HTML animation file
+]);
 export type RenderPath = z.infer<typeof RenderPath>;
 
 export const SceneReviewStatus = z.enum(["pending", "approved", "regenerate"]);
 export type SceneReviewStatus = z.infer<typeof SceneReviewStatus>;
+
+export const PresentationSlideType = z.enum([
+  "title",
+  "bullets",
+  "diagram",
+  "chart",
+  "image",
+  "code",
+  "split",
+  "timeline",
+]);
+export type PresentationSlideType = z.infer<typeof PresentationSlideType>;
 
 /** A single scene as produced by the LLM (structured output schema).
  * Keep this minimal and JSON-schema-friendly: no refinements/transforms,
@@ -32,6 +51,12 @@ export const Scene = z.object({
    * characters present, any animation. Detailed enough to drive generation. */
   visualDescription: z.string(),
   sceneClass: SceneClass,
+  /** Presentation mode: slide layout type. Assigned by LLM; user-overridable. */
+  presentationSlideType: PresentationSlideType.optional(),
+  /** Presentation mode: user opt-in for a standalone animated diagram file. */
+  complexAnimation: z.boolean().optional(),
+  /** Presentation mode: Mermaid/Chart.js code emitted directly by the LLM. */
+  diagramCode: z.string().optional(),
 });
 export type Scene = z.infer<typeof Scene>;
 

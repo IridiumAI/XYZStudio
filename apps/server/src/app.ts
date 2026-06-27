@@ -1,7 +1,7 @@
 import Fastify, { type FastifyReply, type FastifyRequest } from "fastify";
 import cors from "@fastify/cors";
 import { eq } from "drizzle-orm";
-import type { TextProvider, VoiceProvider, VideoProvider } from "@xyzstudio/shared";
+import type { TextProvider, VoiceProvider, VideoProvider, SlideGeneratorProvider, ImageProvider } from "@xyzstudio/shared";
 import { isEmailAllowed, type Auth } from "./auth.js";
 import type { Config } from "./config.js";
 import type { Db } from "./db/client.js";
@@ -9,6 +9,7 @@ import * as schema from "./db/schema.js";
 import { sessionRoutes } from "./routes/sessions.js";
 import { transcriptRoutes } from "./routes/transcript.js";
 import { sceneRoutes } from "./routes/scene.js";
+import { presentationRoutes } from "./routes/presentation.js";
 
 export interface AppDeps {
   config: Config;
@@ -20,6 +21,10 @@ export interface AppDeps {
   voiceProvider: VoiceProvider | null;
   /** Null when video provider key is unset — video generation returns 503. */
   videoProvider: VideoProvider | null;
+  /** Null when ANTHROPIC_API_KEY is unset — presentation export returns 503. */
+  slideGeneratorProvider: SlideGeneratorProvider | null;
+  /** Null when no image provider key configured — image scenes skipped. */
+  imageProvider: ImageProvider | null;
 }
 
 export interface AuthedUser {
@@ -131,6 +136,7 @@ export async function buildApp(deps: AppDeps) {
   await app.register(sessionRoutes, { deps });
   await app.register(transcriptRoutes, { deps });
   await app.register(sceneRoutes, { deps });
+  await app.register(presentationRoutes, { deps });
 
   return app;
 }

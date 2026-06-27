@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  RenderPath,
   Scene,
   Transcript,
   sceneDurationSeconds,
@@ -23,6 +24,48 @@ describe("timestamps", () => {
   it("computes scene duration", () => {
     expect(sceneDurationSeconds({ timestampStart: "0:10", timestampEnd: "0:25" })).toBe(15);
     expect(sceneDurationSeconds({ timestampStart: "0:25", timestampEnd: "0:10" })).toBeNull();
+  });
+});
+
+describe("RenderPath", () => {
+  it("includes presentation and animated_diagram", () => {
+    expect(() => RenderPath.parse("presentation")).not.toThrow();
+    expect(() => RenderPath.parse("animated_diagram")).not.toThrow();
+  });
+
+  it("rejects unknown render path", () => {
+    expect(() => RenderPath.parse("powerpoint")).toThrow();
+  });
+});
+
+describe("Scene — presentation fields", () => {
+  const base = {
+    index: 0,
+    timestampStart: "0:00",
+    timestampEnd: "0:10",
+    narration: "x",
+    visualDescription: "y",
+    sceneClass: "diagram",
+  };
+
+  it("accepts valid presentationSlideType", () => {
+    expect(() => Scene.parse({ ...base, presentationSlideType: "bullets" })).not.toThrow();
+  });
+
+  it("rejects unknown presentationSlideType", () => {
+    expect(() => Scene.parse({ ...base, presentationSlideType: "flashcard" })).toThrow();
+  });
+
+  it("presentationSlideType is optional", () => {
+    expect(() => Scene.parse(base)).not.toThrow();
+  });
+
+  it("accepts complexAnimation boolean", () => {
+    expect(() => Scene.parse({ ...base, complexAnimation: true })).not.toThrow();
+  });
+
+  it("accepts diagramCode string", () => {
+    expect(() => Scene.parse({ ...base, diagramCode: "flowchart LR\n A --> B" })).not.toThrow();
   });
 });
 

@@ -1,5 +1,34 @@
 import { z } from "zod";
 
+export const SessionType = z.enum(["video", "presentation"]);
+export type SessionType = z.infer<typeof SessionType>;
+
+export const ImageProviderTier = z.enum([
+  "openai",
+  "gemini-nano",
+  "gemini-flash",
+  "gemini-pro",
+]);
+export type ImageProviderTier = z.infer<typeof ImageProviderTier>;
+
+export const RevealTheme = z.enum([
+  "white",
+  "black",
+  "moon",
+  "night",
+  "sky",
+  "beige",
+  "simple",
+]);
+export type RevealTheme = z.infer<typeof RevealTheme>;
+
+export const DEFAULT_STYLE_PROMPT =
+  "flat vector illustration, tech aesthetic, blue and white color palette, " +
+  "clean lines, minimal shading, no text, no watermarks";
+
+export const DEFAULT_REVEAL_THEME: RevealTheme = "white";
+export const DEFAULT_IMAGE_PROVIDER: ImageProviderTier = "openai";
+
 export const Language = z.enum(["en", "zh-Hans"]);
 export type Language = z.infer<typeof Language>;
 
@@ -33,6 +62,20 @@ export const CreateSessionInput = z.object({
   budgetUsd: z.number().min(BUDGET_MIN_USD).max(BUDGET_MAX_USD),
 });
 export type CreateSessionInput = z.infer<typeof CreateSessionInput>;
+
+export const CreatePresentationSessionInput = z.object({
+  sessionType: z.literal("presentation"),
+  title: z.string().min(1).max(200),
+  ideaPrompt: z.string().min(1).max(20_000),
+  style: VideoStyle,
+  language: Language,
+  aspect: Aspect,
+  stylePrompt: z.string().min(1).max(2_000).default(DEFAULT_STYLE_PROMPT),
+  revealTheme: RevealTheme.default(DEFAULT_REVEAL_THEME),
+  imageProvider: ImageProviderTier.default(DEFAULT_IMAGE_PROVIDER),
+});
+export type CreatePresentationSessionInput =
+  z.infer<typeof CreatePresentationSessionInput>;
 
 /** Resolution derived from aspect — 1080p class in both orientations. */
 export function resolutionFor(aspect: Aspect): { width: number; height: number } {

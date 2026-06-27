@@ -3,6 +3,10 @@ import type { FastifyInstance } from "fastify";
 import { and, desc, eq, sum } from "drizzle-orm";
 import {
   CreateSessionInput,
+  CreatePresentationSessionInput,
+  DEFAULT_STYLE_PROMPT,
+  DEFAULT_REVEAL_THEME,
+  DEFAULT_IMAGE_PROVIDER,
   PRESET_VOICES,
   Language,
   Transcript,
@@ -31,7 +35,41 @@ export async function sessionRoutes(
     const user = requireUser(request, reply);
     if (!user) return;
 
-    const parsed = CreateSessionInput.safeParse(request.body);
+    const body = request.body as { sessionType?: string };
+
+    if (body.sessionType === "presentation") {
+      const parsed = CreatePresentationSessionInput.safeParse(body);
+      if (!parsed.success) {
+        return reply
+          .status(400)
+          .send({ error: "Invalid input", details: parsed.error.flatten() });
+      }
+      const input = parsed.data;
+      const id = randomUUID();
+      await db.insert(schema.videoSessions).values({
+        id,
+        userId: user.id,
+        title: input.title,
+        ideaPrompt: input.ideaPrompt,
+        style: input.style,
+        language: input.language,
+        aspect: input.aspect,
+        voiceId: "",
+        budgetUsd: 0,
+        status: "drafting",
+        sessionType: "presentation",
+        presentationStylePrompt: input.stylePrompt ?? DEFAULT_STYLE_PROMPT,
+        revealTheme: input.revealTheme ?? DEFAULT_REVEAL_THEME,
+        imageProvider: input.imageProvider ?? DEFAULT_IMAGE_PROVIDER,
+      });
+      const [row] = await db
+        .select()
+        .from(schema.videoSessions)
+        .where(eq(schema.videoSessions.id, id));
+      return reply.status(201).send(row);
+    }
+
+    const parsed = CreateSessionInput.safeParse(body);
     if (!parsed.success) {
       return reply
         .status(400)
@@ -57,6 +95,7 @@ export async function sessionRoutes(
       voiceId: input.voiceId,
       budgetUsd: input.budgetUsd,
       status: "drafting",
+      sessionType: "video",
     });
     const [row] = await db
       .select()
@@ -191,7 +230,7 @@ export async function appendTranscriptVersion(
     sessionId: string;
     source: "generated" | "user_edit" | "llm_revision";
     transcript: Transcript;
-    budgetUsd: number;
+    budgetUsd: number | null;
     feedbackMessage?: string;
   },
 ) {
@@ -214,7 +253,7 @@ export async function appendTranscriptVersion(
     content: args.transcript,
   });
 
-  const plan = estimateCostPlan(args.transcript.scenes, args.budgetUsd);
+  const plan = estimateCostPlan(args.transcript.scenes, args.budgetUsd ?? 0);
   await db
     .delete(schema.costPlans)
     .where(eq(schema.costPlans.sessionId, args.sessionId));

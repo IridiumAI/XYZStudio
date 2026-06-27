@@ -310,3 +310,47 @@ button.link {
   color: #c2410c;
   text-decoration: underline;
 }
+/* Session type toggle on Dashboard */
+.type-toggle {
+  display: flex;
+  gap: 0;
+  margin-bottom: 1rem;
+  border-radius: 7px;
+  overflow: hidden;
+  border: 1px solid #cfccc2;
+  align-self: flex-start;
+}
+.toggle-btn {
+  background: #fff;
+  color: #1d1d1f;
+  border-radius: 0;
+  border: none;
+  padding: 0.45rem 1.1rem;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+.toggle-btn + .toggle-btn {
+  border-left: 1px solid #cfccc2;
+}
+.toggle-btn.active {
+  background: #c2410c;
+  color: #fff;
+}
+/* Complex animation checkbox in scene table */
+.complex-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  cursor: pointer;
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+.complex-toggle input[type="checkbox"] {
+  width: auto;
+  margin: 0;
+}
+/* Export success message */
+.export-success {
+  color: #166534;
+  font-size: 0.9rem;
+}

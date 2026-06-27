@@ -85,9 +85,17 @@ export const videoSessions = sqliteTable("video_sessions", {
   style: text("style").notNull(), // cartoon | whiteboard
   language: text("language").notNull(), // en | zh-Hans
   aspect: text("aspect").notNull(), // 16x9 | 9x16
-  voiceId: text("voice_id").notNull(),
-  budgetUsd: real("budget_usd").notNull(), // 1-200, soft target
+  // video sessions: real voice id; presentation sessions: empty string sentinel
+  voiceId: text("voice_id").notNull().default(""),
+  // video sessions: 1-200 budget; presentation sessions: 0 sentinel
+  budgetUsd: real("budget_usd").notNull().default(0),
   status: text("status").notNull().default("drafting"),
+  // "video" | "presentation"
+  sessionType: text("session_type").notNull().default("video"),
+  // presentation sessions only
+  presentationStylePrompt: text("presentation_style_prompt"),
+  revealTheme: text("reveal_theme"),
+  imageProvider: text("image_provider"),
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
     .$defaultFn(() => new Date()),
@@ -172,7 +180,7 @@ export const assets = sqliteTable("assets", {
     .notNull()
     .references(() => videoSessions.id, { onDelete: "cascade" }),
   sceneIndex: integer("scene_index"),
-  kind: text("kind").notNull(), // sketch | keyframe | clip | voice | final_video | thumbnail
+  kind: text("kind").notNull(), // sketch | keyframe | clip | voice | final_video | thumbnail | presentation | diagram
   language: text("language"), // en | zh-Hans | null for visual-only assets (decision I)
   path: text("path").notNull(), // relative to STORAGE_ROOT
   providerMeta: text("provider_meta", { mode: "json" }),

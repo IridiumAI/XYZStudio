@@ -1,4 +1,10 @@
-import type { CostPlan, CreateSessionInput, Scene, Transcript } from "@xyzstudio/shared";
+import type {
+  CostPlan,
+  CreateSessionInput,
+  CreatePresentationSessionInput,
+  Scene,
+  Transcript,
+} from "@xyzstudio/shared";
 
 export interface SessionRow {
   id: string;
@@ -11,6 +17,10 @@ export interface SessionRow {
   budgetUsd: number;
   status: string;
   createdAt: string;
+  sessionType: "video" | "presentation";
+  presentationStylePrompt: string | null;
+  revealTheme: string | null;
+  imageProvider: string | null;
 }
 
 export interface TranscriptVersionRow {
@@ -58,7 +68,17 @@ export interface SceneSelectionRow extends SceneSelection {
 }
 
 export type SceneEditPatch = Partial<
-  Pick<Scene, "timestampStart" | "timestampEnd" | "narration" | "visualDescription" | "sceneClass">
+  Pick<
+    Scene,
+    | "timestampStart"
+    | "timestampEnd"
+    | "narration"
+    | "visualDescription"
+    | "sceneClass"
+    | "complexAnimation"
+    | "presentationSlideType"
+    | "diagramCode"
+  >
 >;
 
 async function request<T>(url: string, init?: RequestInit): Promise<T> {
@@ -84,6 +104,13 @@ export const api = {
       method: "POST",
       body: JSON.stringify(input),
     }),
+  createPresentationSession: (input: CreatePresentationSessionInput) =>
+    request<SessionRow>("/api/sessions", {
+      method: "POST",
+      body: JSON.stringify(input),
+    }),
+  getPresentationZipUrl: (sessionId: string) =>
+    `/api/sessions/${sessionId}/presentation/zip`,
   listVersions: (id: string) =>
     request<TranscriptVersionRow[]>(`/api/sessions/${id}/versions`),
   saveTranscriptEdit: (id: string, transcript: Transcript) =>
@@ -118,6 +145,11 @@ export type SseEvent =
   | { type: "complete"; version: number; transcript: Transcript; costPlan: CostPlan }
   | { type: "error"; message: string };
 
+export type PresentationExportSseEvent =
+  | { type: "progress"; sceneIndex: number; total: number }
+  | { type: "complete"; assetId: string }
+  | { type: "error"; message: string };
+
 export type AssetSseEvent =
   | { type: "complete"; asset: SceneAsset }
   | { type: "error"; message: string };
@@ -144,6 +176,22 @@ async function readSseBody<T>(
       }
     }
   }
+}
+
+/** POST to presentation export endpoint and stream SSE progress events. */
+export async function streamPresentationExport(
+  sessionId: string,
+  onEvent: (event: PresentationExportSseEvent) => void,
+): Promise<void> {
+  const res = await fetch(`/api/sessions/${sessionId}/export/presentation`, {
+    method: "POST",
+    credentials: "include",
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error((err as { error?: string }).error ?? `HTTP ${res.status}`);
+  }
+  await readSseBody(res, onEvent);
 }
 
 /** POST + read an SSE body for asset generation (narration / video). */
