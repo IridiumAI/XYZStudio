@@ -9,7 +9,8 @@ pnpm dev          # start server (port 3000) + web (port 5173) in parallel
 pnpm test         # unit + integration tests — no API keys or Redis required
 pnpm typecheck    # TypeScript check across all packages
 pnpm build        # compile all packages
-pnpm db:push      # apply Drizzle schema to SQLite (run once after schema changes)
+pnpm db:migrate   # apply pending Drizzle migrations to Supabase PostgreSQL
+pnpm db:generate  # generate a new migration file after schema changes
 ```
 
 Run a single package's tests or typecheck:
@@ -62,11 +63,13 @@ Signup is gated by `ALLOWLIST_EMAILS` (env, comma-separated) or rows in the `all
 
 ### Database
 
-SQLite via Drizzle ORM. The app's video sessions live in `video_sessions` (not `session`) to avoid colliding with better-auth's own `session` table. Schema file: `apps/server/src/db/schema.ts`.
+PostgreSQL on Supabase via Drizzle ORM. All tables live in the `"XYZStudio"` PG schema (set via `DB_SCHEMA_NAME`). The app's video sessions live in `video_sessions` (not `session`) to avoid colliding with better-auth's `session` table. Schema file: `apps/server/src/db/schema.ts`. Migrations live in `apps/server/drizzle/` and are applied automatically at server startup via `runMigrations()`. For new schema changes: `pnpm db:generate` then commit the migration file; `migrate()` in `client.ts` applies it on next startup for both local and Docker.
+
+The `drizzle` schema in Supabase holds `__drizzle_migrations` (tracking table). Do NOT use `drizzle-kit push` — it has a known issue with case-sensitive schema names. Use `pnpm db:migrate` instead.
 
 ### Testing
 
-Tests use in-memory SQLite (via `drizzle-kit`'s `pushSQLiteSchema` API) and `FakeTextProvider` — no real API keys, Redis, or network needed. The test helper `createTestApp()` wires everything up; `signUp()` exercises the real better-auth signup endpoint.
+Tests use in-memory PostgreSQL via `@electric-sql/pglite` and apply migrations from `apps/server/drizzle/` — no real API keys, Redis, or network needed. The test helper `createTestApp()` wires everything up; `signUp()` exercises the real better-auth signup endpoint.
 
 ## Development Setup
 

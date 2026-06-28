@@ -8,14 +8,21 @@ dotenvConfig({
   override: false,
 });
 
-const url = (process.env.DATABASE_URL ?? "file:./data/xyzstudio.db").replace(
-  /^file:/,
-  "",
-);
+const {
+  DB_USERNAME = "postgres",
+  DB_PASSWORD = "",
+  DB_HOST_NAME = "localhost",
+  DB_PORT = "5432",
+  DB_NAME = "postgres",
+} = process.env;
+
+const pw = encodeURIComponent(DB_PASSWORD);
+const url = `postgresql://${DB_USERNAME}:${pw}@${DB_HOST_NAME}:${DB_PORT}/${DB_NAME}`;
 
 export default defineConfig({
-  dialect: "sqlite",
+  dialect: "postgresql",
   schema: "./src/db/schema.ts",
   out: "./drizzle",
-  dbCredentials: { url },
+  dbCredentials: { url, ssl: { rejectUnauthorized: false } },
+  schemaFilter: ["XYZStudio"],
 });

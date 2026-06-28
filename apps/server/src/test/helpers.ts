@@ -1,9 +1,11 @@
 import { writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { randomUUID } from "node:crypto";
-import Database from "better-sqlite3";
-import { drizzle } from "drizzle-orm/better-sqlite3";
+import { PGlite } from "@electric-sql/pglite";
+import { drizzle } from "drizzle-orm/pglite";
+import { migrate } from "drizzle-orm/pglite/migrator";
 import type {
   ImageProvider,
   ImageProviderTier,
@@ -21,6 +23,11 @@ import { loadConfig, type Config } from "../config.js";
 import * as schema from "../db/schema.js";
 import type { Db } from "../db/client.js";
 
+const migrationsFolder = resolve(
+  dirname(fileURLToPath(import.meta.url)),
+  "../../drizzle",
+);
+
 // Minimal 1×1 white PNG
 const PNG_1X1 = Buffer.from(
   "89504e470d0a1a0a0000000d49484452000000010000000108020000009001" +
@@ -35,24 +42,22 @@ export function testConfig(overrides: Partial<Config> = {}): Config {
       NODE_ENV: "test",
       AUTH_SECRET: "test-secret-test-secret",
       ALLOWLIST_EMAILS: "allowed@example.com",
-      DATABASE_URL: "file::memory:",
+      // DB_* vars not used in tests (PGlite bypasses the real DB connection)
+      DB_HOST_NAME: "localhost",
+      DB_PORT: "5432",
+      DB_NAME: "postgres",
+      DB_USERNAME: "postgres",
+      DB_PASSWORD: "",
     }),
     ...overrides,
   };
 }
 
-/** In-memory DB with the schema applied via drizzle-kit's programmatic API.
- * Note: drizzle-kit's `apply()` runs DDL through `.all()`, which
- * better-sqlite3 rejects — execute the generated statements directly. */
+/** In-memory PG database via PGlite with the schema applied via migrations. */
 export async function createTestDb(): Promise<Db> {
-  const sqlite = new Database(":memory:");
-  sqlite.pragma("foreign_keys = ON");
-  const db = drizzle(sqlite, { schema });
-  const { pushSQLiteSchema } = await import("drizzle-kit/api");
-  const { statementsToExecute } = await pushSQLiteSchema(schema, db as never);
-  for (const stmt of statementsToExecute) {
-    sqlite.exec(stmt);
-  }
+  const pg = new PGlite();
+  const db = drizzle(pg, { schema });
+  await migrate(db, { migrationsFolder });
   return db as unknown as Db;
 }
 

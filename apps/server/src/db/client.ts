@@ -1,9 +1,8 @@
-import { mkdirSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import Database from "better-sqlite3";
-import { drizzle } from "drizzle-orm/better-sqlite3";
-import { migrate } from "drizzle-orm/better-sqlite3/migrator";
+import postgres from "postgres";
+import { drizzle } from "drizzle-orm/postgres-js";
+import { migrate } from "drizzle-orm/postgres-js/migrator";
 import type { Config } from "../config.js";
 import * as schema from "./schema.js";
 
@@ -15,11 +14,19 @@ const migrationsFolder = resolve(
 );
 
 export function createDb(config: Config) {
-  mkdirSync(dirname(config.sqlitePath), { recursive: true });
-  const sqlite = new Database(config.sqlitePath);
-  sqlite.pragma("journal_mode = WAL");
-  sqlite.pragma("foreign_keys = ON");
-  const db = drizzle(sqlite, { schema });
-  migrate(db, { migrationsFolder });
-  return db;
+  const client = postgres(config.databaseUrl, {
+    max: 10,
+    ssl: { rejectUnauthorized: false },
+  });
+  return drizzle(client, { schema });
+}
+
+export async function runMigrations(config: Config) {
+  const client = postgres(config.databaseUrl, {
+    max: 1,
+    ssl: { rejectUnauthorized: false },
+  });
+  const db = drizzle(client, { schema });
+  await migrate(db, { migrationsFolder });
+  await client.end();
 }

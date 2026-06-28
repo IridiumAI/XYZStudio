@@ -28,7 +28,7 @@ export function createAuth(db: Db, config: Config) {
     baseURL: config.AUTH_URL,
     trustedOrigins: [config.WEB_ORIGIN],
     database: drizzleAdapter(db, {
-      provider: "sqlite",
+      provider: "pg",
       schema: {
         user: schema.user,
         session: schema.session,

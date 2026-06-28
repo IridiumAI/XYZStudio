@@ -2,10 +2,11 @@ import "./env.js";
 import { buildApp } from "./app.js";
 import { createAuth } from "./auth.js";
 import { loadConfig } from "./config.js";
-import { createDb } from "./db/client.js";
+import { createDb, runMigrations } from "./db/client.js";
 import { AnthropicTextProvider } from "./providers/anthropic.js";
 
 const config = loadConfig();
+await runMigrations(config);
 const db = createDb(config);
 const auth = createAuth(db, config);
 const textProvider = config.ANTHROPIC_API_KEY

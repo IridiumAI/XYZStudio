@@ -22,7 +22,6 @@ services:
     env_file: .env
     environment:
       REDIS_URL: redis://redis:6379
-      DATABASE_URL: file:/app/data/xyzstudio.db
       STORAGE_ROOT: /app/data
       WEB_ORIGIN: http://localhost:8080
     ports:
@@ -42,7 +41,6 @@ services:
     env_file: .env
     environment:
       REDIS_URL: redis://redis:6379
-      DATABASE_URL: file:/app/data/xyzstudio.db
       STORAGE_ROOT: /app/data
     volumes:
       - app-data:/app/data
